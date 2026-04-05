@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ИИ-Ассистент ОТиПБ | Казцинк</title>
+    <style>
+        :root {
+          --bg: #0f1115;
+          --panel-bg: rgba(255, 255, 255, 0.05);
+          --border: rgba(255, 255, 255, 0.1);
+          --text: #e0e0e0;
+          --text-muted: #888;
+          --accent: #2196f3;
+          
+          --risk-low: #4caf50;
+          --risk-low-bg: rgba(76, 175, 80, 0.15);
+          --risk-med: #ffeb3b;
+          --risk-med-bg: rgba(255, 235, 59, 0.15);
+          --risk-high: #ff9800;
+          --risk-high-bg: rgba(255, 152, 0, 0.15);
+          --risk-crit: #f44336;
+          --risk-crit-bg: rgba(244, 67, 54, 0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          background-color: var(--bg);
+          background-image: radial-gradient(circle at 15% 50%, rgba(33, 150, 243, 0.05), transparent 25%),
+                            radial-gradient(circle at 85% 30%, rgba(244, 67, 54, 0.05), transparent 25%);
+          color: var(--text);
+          min-height: 100vh;
+          line-height: 1.5;
+        }
+
+        .hidden { display: none !important; }
+
+        .header {
+          padding: 1.5rem 2rem;
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          border-bottom: 1px solid var(--border);
+          background: rgba(15, 17, 21, 0.8);
+          backdrop-filter: blur(10px);
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+        .logo { font-weight: 800; font-size: 1.2rem; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+        h1 { font-size: 1.25rem; font-weight: 600; color: #fff; }
+
+        .container {
+          display: grid;
+          grid-template-columns: 350px 1fr;
+          gap: 2rem;
+          padding: 2rem;
+          max-width: 1440px;
+          margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+          .container { grid-template-columns: 1fr; }
+        }
+
+        .glass-card {
+          background: var(--panel-bg);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 1.5rem;
+          backdrop-filter: blur(12px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #fff; font-weight: 600; }
+        h3 { font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;}
+
+        .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; }
+        .checkbox-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          background: rgba(0,0,0,0.2);
+          border: 1px solid transparent;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .checkbox-item:hover { background: rgba(255,255,255,0.05); }
+        .checkbox-item input:checked + span { color: #fff; }
+        .checkbox-item input { accent-color: var(--accent); transform: scale(1.1); }
+
+        .btn {
+          width: 100%;
+          padding: 1rem;
+          border: none;
+          border-radius: 8px;
+          font-family: inherit;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-top: 1rem;
+        }
+        .primary-btn { background: var(--accent); color: #fff; }
+        .primary-btn:hover:not(:disabled) { background: #1e88e5; transform: translateY(-1px); }
+        .primary-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+        .placeholder-text {text-align: center; color: var(--text-muted); padding: 4rem 1rem;}
+
+        .report-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid var(--border);
+        }
+        .risk-badge {
+          padding: 0.5rem 1rem;
+          border-radius: 50px;
+          font-weight: 700;
+          font-size: 0.9rem;
+          letter-spacing: 0.5px;
+          transition: all 0.3s ease;
+        }
+
+        /* Dynamic Risks */
+        .risk-critical { background: var(--risk-crit-bg); color: var(--risk-crit); border: 1px solid var(--risk-crit); animation: pulse 2s infinite;}
+        .risk-high { background: var(--risk-high-bg); color: var(--risk-high); border: 1px solid var(--risk-high); }
+        .risk-med { background: var(--risk-med-bg); color: var(--risk-med); border: 1px solid var(--risk-med); }
+        .risk-low { background: var(--risk-low-bg); color: var(--risk-low); border: 1px solid var(--risk-low); }
+
+        @keyframes pulse {
+          0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+        }
+
+        .info-block { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .info-row { display: flex; gap: 0.5rem; }
+        .info-row .label { color: var(--text-muted); width: 130px; font-weight: 500;}
+        .info-row .value { color: #fff; font-weight: 600;}
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;}
+        @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+        .list-block ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+        .list-block ul li {
+          position: relative; padding-left: 1.25rem; font-size: 0.95rem;
+        }
+        .list-block ul li::before {
+          content: '•'; position: absolute; left: 0; color: var(--accent); font-weight: bold;
+        }
+        .hazards ul li::before { color: var(--risk-crit); }
+        .ppe ul li::before { color: var(--risk-low); }
+        .permit ul li::before { color: var(--risk-high); }
+
+        .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .tag {
+          background: rgba(33, 150, 243, 0.15);
+          color: #64b5f6;
+          border: 1px solid rgba(33, 150, 243, 0.3);
+          padding: 0.3rem 0.75rem;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          font-weight: 600;
+        }
+
+        .alert-box {
+          padding: 1rem;
+          border-radius: 8px;
+          margin-bottom: 1.5rem;
+          font-size: 0.95rem;
+          line-height: 1.4;
+        }
+        .alert-box.critical {
+          background: rgba(244, 67, 54, 0.1);
+          border-left: 4px solid var(--risk-crit);
+          color: #ff8a80;
+        }
+
+        .footer-note { font-size: 0.8rem; color: var(--text-muted); margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+
+        /* Print Styles */
+        @media print {
+          @page { margin: 15mm; }
+          body { background: #fff !important; color: #000 !important; background-image: none !important;}
+          .no-print { display: none !important; }
+          .container { display: block; padding: 0; }
+          .glass-card { background: none; border: none; box-shadow: none; padding: 0; }
+          .glass-card * { color: #000 !important; }
+          .risk-badge { border: 2px solid #000 !important; color: #000 !important; background: transparent !important; animation: none !important;}
+          .tag { background: none !important; border: 1px solid #666; color: #000 !important; }
+          .critical { border: 1px solid #000; border-left: 5px solid #000; color: #000 !important; background: none;}
+          .footer-note { display: block; text-align: center; }
+          h2, h3 { color: #000 !important; border-bottom: 2px solid #000; padding-bottom: 0.2rem; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header no-print">
+        <div class="logo">Kazzinc HSE</div>
+        <h1>Анализ Рисков и Наряд-Допуски</h1>
+    </header>
+
+    <main class="container">
+        <!-- Левая колонка: Форма -->
+        <section class="form-section no-print">
+            <div class="glass-card">
+                <h2>Введите исходные данные</h2>
+                <div class="form-group">
+                    <label>Выберите цеха / зоны / виды работ:</label>
+                    <div class="checkbox-group" id="workTypesGroup">
+                        <label class="checkbox-item"><input type="checkbox" value="welding"> <span>Сварочный цех</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="electrical"> <span>Электроустановки / Электромонтаж</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="metallurgical"> <span>Металл. цех / Плавильное отделение</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="concentrator"> <span>Обогатительная фабрика</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="zinc"> <span>Цинковый завод / Электролизный цех</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="height"> <span>Работы на высоте (h > 1.8м)</span></label>
+                        <label class="checkbox-item"><input type="checkbox" value="confined"> <span>Замкнутые пространства (Confined Space)</span></label>
+                    </div>
+                </div>
+            </div>
+            <button id="saveBtn" class="btn primary-btn" disabled>Сохранить наряд (в PDF)</button>
+        </section>
+
+        <!-- Правая колонка: Результат -->
+        <section class="result-section" id="resultSection">
+            <div class="glass-card result-card" id="outputCard">
+                <div class="placeholder-text">Выберите виды работ для автоматического анализа...</div>
+                
+                <div id="resultContent" class="hidden">
+                    <div class="report-header">
+                        <h2>Оценка безопасности наряда</h2>
+                        <div id="riskBadge" class="risk-badge">🟢 НИЗКИЙ РИСК</div>
+                    </div>
+                    
+                    <div class="info-block">
+                        <div class="info-row">
+                            <span class="label">🏭 Цех/Зона:</span>
+                            <span class="value" id="outZones"></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">🔧 Оборудование:</span>
+                            <span class="value">⚠️ уточнить у диспетчера</span>
+                        </div>
+                    </div>
+
+                    <div id="conflictsContainer" class="alert-box critical hidden">
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="list-block hazards">
+                            <h3>🔴 Идентифицированные опасности</h3>
+                            <ul id="outHazards"></ul>
+                        </div>
+
+                        <div class="list-block ppe">
+                            <h3>🦺 Обязательные СИЗ</h3>
+                            <ul id="outPpe"></ul>
+                        </div>
+                    </div>
+
+                    <div class="list-block protocols">
+                        <h3>📋 Применимые протоколы FRP</h3>
+                        <div class="tags" id="outFrp"></div>
+                    </div>
+
+                    <div class="list-block permit">
+                        <h3>📝 Требуемые наряды-допуски</h3>
+                        <ul id="outPermits"></ul>
+                    </div>
+
+                    <div class="footer-note">
+                        *Финальное решение принимает ответственный руководитель работ. Автоматическая генерация.
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const DB = {
+          welding: {
+            name: "Сварочный цех",
+            level: 3, 
+            hazards: ["Открытое пламя", "УФ-излучение", "Токсичные аэрозоли", "Поражение током", "Брызги металла"],
+            frp: ["FRP-01", "FRP-07", "FRP-09"],
+            permit: "Наряд-допуск на огневые работы",
+            ppe: ["Маска сварщика Ш-5+", "Огнестойкий костюм", "Краги сварщика", "Респиратор для сварки", "Диэлектрические перчатки"]
+          },
+          electrical: {
+            name: "Электроустановки / Электромонтаж",
+            level: 3, 
+            hazards: ["Поражение током (в т.ч. до 10 кВ)", "Дуговое КЗ", "Случайная подача напряжения", "Термические ожоги"],
+            frp: ["FRP-01 (LOTO - обязательно)", "FRP-06", "FRP-07"],
+            permit: "Наряд-допуск на электроработы",
+            ppe: ["Диэлектрические перчатки", "Диэлектрические боты", "Каска защитная", "Защитные очки", "Огнестойкий костюм"],
+            conflict: { with: "welding", msg: "⛔ КРИТИЧЕСКОЕ СОВМЕЩЕНИЕ: Одновременные огневые и электроработы! Требуется согласование ОТиПБ. Оформлять в одном наряде-допуске СТРОГО ЗАПРЕЩЕНО." }
+          },
+          metallurgical: {
+            name: "Металлургический цех / Плавильное отделение",
+            level: 3,
+            hazards: ["Расплавленный металл", "Высокие температуры (до 1400°C)", "Токсичные газы (SO2, CO)", "Взрыв при контакте с влагой"],
+            frp: ["FRP-01", "FRP-07", "FRP-08", "FRP-09"],
+            permit: "Наряд на огневые работы + допуск в опасную зону",
+            ppe: ["Алюминизированный костюм", "Щиток для лица термостойкий", "Термостойкие боты", "СИЗОД (респиратор/противогаз)"]
+          },
+          concentrator: {
+            name: "Обогатительная фабрика",
+            level: 2, 
+            hazards: ["Вращающиеся механизмы и конвейеры", "Пыль (опасность силикоза)", "Шум >85 дБ", "Химреагенты (флотация)"],
+            frp: ["FRP-01", "FRP-02", "FRP-09", "FRP-10"],
+            permit: "Наряд-допуск при работе у механизмов",
+            ppe: ["Каска защитная", "Беруши / наушники", "Респиратор P3", "Защитные очки", "Перчатки химстойкие"]
+          },
+          zinc: {
+            name: "Цинковый завод / Электролиз",
+            level: 3,
+            hazards: ["Серная кислота (H2SO4)", "Выделение водорода (взрывоопасно)", "Поражение током (ванны)", "Химические ожоги"],
+            frp: ["FRP-01", "FRP-07", "FRP-09"],
+            permit: "Допуск в химически опасную зону",
+            ppe: ["Кислотостойкий суконный костюм", "Защитный щиток", "Кислотостойкие перчатки", "Кислотостойкие сапоги", "СИЗОД"]
+          },
+          height: {
+            name: "Работы на высоте (h > 1.8м)",
+            level: 3,
+            hazards: ["Падение с высоты человека", "Падение инструментов/материалов вниз"],
+            frp: ["FRP-06"],
+            permit: "Наряд-допуск на работы на высоте",
+            ppe: ["Страховочная привязь (индивидуальная система)", "Каска с подбородочным ремнем", "Нескользящая обувь", "Ограждение нижней зоны"]
+          },
+          confined: {
+            name: "Замкнутые пространства",
+            level: 4, 
+            hazards: ["Недостаток кислорода", "Наличие токсичных скоплений газов", "Затрудненная эвакуация"],
+            frp: ["FRP-05"],
+            permit: "Наряд-допуск на работы в ЗП",
+            ppe: ["Изолирующий дыхательный аппарат", "Страховочная система спасения", "Средства связи", "Обязательный наблюдающий снаружи!"],
+            isConfined: true
+          }
+        };
+
+        const levelsMap = {
+          1: { text: "🟢 НИЗКИЙ РИСК", cls: "risk-low" },
+          2: { text: "🟡 СРЕДНИЙ РИСК", cls: "risk-med" },
+          3: { text: "🟠 ВЫСОКИЙ РИСК", cls: "risk-high" },
+          4: { text: "🔴 КРИТИЧЕСКИЙ РИСК", cls: "risk-critical" }
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+          const checkboxes = document.querySelectorAll("#workTypesGroup input[type='checkbox']");
+          const saveBtn = document.getElementById("saveBtn");
+          const resultContent = document.getElementById("resultContent");
+          const placeholder = document.querySelector(".placeholder-text");
+          
+          const ui = {
+            badge: document.getElementById("riskBadge"),
+            zones: document.getElementById("outZones"),
+            hazards: document.getElementById("outHazards"),
+            ppe: document.getElementById("outPpe"),
+            frp: document.getElementById("outFrp"),
+            permits: document.getElementById("outPermits"),
+            conflicts: document.getElementById("conflictsContainer")
+          };
+
+          function update() {
+            const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+            
+            if (selected.length === 0) {
+              placeholder.classList.remove("hidden");
+              resultContent.classList.add("hidden");
+              saveBtn.disabled = true;
+              return;
+            }
+
+            placeholder.classList.add("hidden");
+            resultContent.classList.remove("hidden");
+            saveBtn.disabled = false;
+
+            let maxLevel = 1;
+            const items = selected.map(k => DB[k]);
+            
+            const data = {
+              names: [], hazards: new Set(), ppe: new Set(), frp: new Set(), permits: new Set(), alerts: []
+            };
+
+            let riskElevated = false;
+            items.forEach(item => {
+              data.names.push(item.name);
+              item.hazards.forEach(vh => data.hazards.add(vh));
+              item.ppe.forEach(vp => data.ppe.add(vp));
+              item.frp.forEach(vf => data.frp.add(vf));
+              data.permits.add(item.permit);
+              if (item.level > maxLevel) maxLevel = item.level;
+            });
+
+            if (selected.length > 1 && maxLevel < 4) {
+               maxLevel++;
+               riskElevated = true;
+               data.alerts.push("⚠️ Внимание: Совмещение нескольких видов работ повышает общую категорию риска.");
+            }
+
+            if (selected.includes("welding") && selected.includes("electrical")) {
+               maxLevel = 4;
+               data.alerts.push(DB.electrical.conflict.msg);
+            }
+
+            if (data.permits.size > 1) {
+               data.alerts.push("⛔ ЗАПРЕТ: Оформление двух разных нарядов в одном бланке запрещено! Выпишите раздельно.");
+            }
+
+            const riskInfo = levelsMap[maxLevel];
+            ui.badge.className = `risk-badge ${riskInfo.cls}`;
+            ui.badge.textContent = riskInfo.text;
+            ui.zones.textContent = data.names.join(" + ");
+
+            ui.hazards.innerHTML = Array.from(data.hazards).map(h => `<li>${h}</li>`).join("");
+            ui.ppe.innerHTML = Array.from(data.ppe).map(p => `<li>${p}</li>`).join("");
+            ui.permits.innerHTML = Array.from(data.permits).map(p => `<li>${p}</li>`).join("");
+            ui.frp.innerHTML = Array.from(data.frp).map(f => `<span class="tag">${f}</span>`).join("");
+
+            if (data.alerts.length > 0) {
+              ui.conflicts.classList.remove("hidden");
+              ui.conflicts.innerHTML = data.alerts.map(a => `<div>${a}</div>`).join("<br>");
+            } else {
+              ui.conflicts.classList.add("hidden");
+              ui.conflicts.innerHTML = "";
+            }
+          }
+
+          checkboxes.forEach(cb => cb.addEventListener("change", update));
+
+          saveBtn.addEventListener("click", () => {
+            window.print();
+          });
+        });
+    </script>
+</body>
+</html>
